@@ -41,6 +41,7 @@ func main() {
 	queries = db.New(conn)
 
 	http.HandleFunc("/add-post", addPostHandler)
+	http.HandleFunc("/get-post/{post_id}", getPostHandler)
 
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
