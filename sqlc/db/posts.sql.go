@@ -11,29 +11,51 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createPost = `-- name: CreatePost :one
-INSERT INTO posts (author_email, post) VALUES ($1, $2) RETURNING post_id, author_email, post
+const createPostWithAuthorEmail = `-- name: CreatePostWithAuthorEmail :one
+WITH ins_author AS (
+  INSERT INTO authors (email)
+  VALUES ($1)
+  ON CONFLICT (email) DO NOTHING
+  RETURNING author_id
+),
+sel_author AS (
+  SELECT author_id FROM ins_author
+  UNION
+  SELECT author_id FROM authors WHERE email = $1
+),
+ins_post AS (
+  INSERT INTO posts (author_id, post)
+  SELECT author_id, $2 FROM sel_author
+  RETURNING post_id, post, author_id
+)
+SELECT post_id, post, author_id FROM ins_post
 `
 
-type CreatePostParams struct {
-	AuthorEmail string
-	Post        pgtype.Text
+type CreatePostWithAuthorEmailParams struct {
+	Email string
+	Post  pgtype.Text
 }
 
-func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
-	row := q.db.QueryRow(ctx, createPost, arg.AuthorEmail, arg.Post)
-	var i Post
-	err := row.Scan(&i.PostID, &i.AuthorEmail, &i.Post)
+type CreatePostWithAuthorEmailRow struct {
+	PostID   int32
+	Post     pgtype.Text
+	AuthorID int32
+}
+
+func (q *Queries) CreatePostWithAuthorEmail(ctx context.Context, arg CreatePostWithAuthorEmailParams) (CreatePostWithAuthorEmailRow, error) {
+	row := q.db.QueryRow(ctx, createPostWithAuthorEmail, arg.Email, arg.Post)
+	var i CreatePostWithAuthorEmailRow
+	err := row.Scan(&i.PostID, &i.Post, &i.AuthorID)
 	return i, err
 }
 
 const getPost = `-- name: GetPost :one
-SELECT post_id, author_email, post FROM posts WHERE post_id = $1
+SELECT post_id, post, author_id FROM posts WHERE post_id = $1
 `
 
 func (q *Queries) GetPost(ctx context.Context, postID int32) (Post, error) {
 	row := q.db.QueryRow(ctx, getPost, postID)
 	var i Post
-	err := row.Scan(&i.PostID, &i.AuthorEmail, &i.Post)
+	err := row.Scan(&i.PostID, &i.Post, &i.AuthorID)
 	return i, err
 }

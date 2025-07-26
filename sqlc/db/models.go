@@ -8,8 +8,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Author struct {
+	AuthorID int32
+	Email    string
+}
+
 type Post struct {
-	PostID      int32
-	AuthorEmail string
-	Post        pgtype.Text
+	PostID   int32
+	Post     pgtype.Text
+	AuthorID int32
 }
