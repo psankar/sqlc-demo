@@ -27,14 +27,11 @@ func addPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := queries.CreatePost(
+	post, err := queries.CreatePostWithAuthorEmail(
 		r.Context(),
-		db.CreatePostParams{
-			AuthorEmail: addPostRequest.AuthorEmail,
-			Post: pgtype.Text{
-				String: addPostRequest.Post,
-				Valid:  true,
-			},
+		db.CreatePostWithAuthorEmailParams{
+			Email: addPostRequest.AuthorEmail,
+			Post:  pgtype.Text{String: addPostRequest.Post, Valid: true},
 		})
 	if err != nil {
 		log.Fatal(err)
